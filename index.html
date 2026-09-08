@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1e2532">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Travel Planner">
+<title>Travel Planner</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #faf7f2;
+  --card: #ffffff;
+  --ink: #1f2430;
+  --muted: #6b7280;
+  --line: #e7e2da;
+  --accent: #c2703e;
+  --accent-ink: #ffffff;
+  --booked: #2f9e6b;
+  --booked-bg: #e3f5ec;
+  --pending: #d98a1e;
+  --pending-bg: #fff2dc;
+  --unknown: #8b8f9a;
+  --unknown-bg: #eceef2;
+  --head1: #1e2532;
+  --head2: #2f3a4d;
+  --weekend: #f3ede3;
+  --radius: 14px;
+  --shadow: 0 1px 2px rgba(20, 20, 40, .06), 0 6px 20px rgba(20, 20, 40, .06);
+  --font-body: "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-head: "Playfair Display", Georgia, "Times New Roman", serif;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.45;
+  padding-bottom: 76px;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+h1, h2, h3 { font-family: var(--font-head); font-weight: 600; margin: 0; }
+a { color: var(--accent); }
+[hidden] { display: none !important; }
+.sr { position: absolute; left: -9999px; }
+
+/* Header */
+.hdr {
+  background: linear-gradient(135deg, var(--head1), var(--head2));
+  color: #fff; padding: 12px 16px 14px; position: sticky; top: 0; z-index: 20;
+  box-shadow: 0 2px 10px rgba(0,0,0,.18);
+}
+.hdr-row { display: flex; align-items: center; gap: 10px; }
+.hdr-in { max-width: 760px; margin: 0 auto; }
+.hdr h1 { font-size: 20px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hdr .sub { font-size: 12.5px; opacity: .8; margin-top: 3px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.ibtn {
+  background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.18); color: #fff;
+  border-radius: 10px; width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.ibtn:active { background: rgba(255,255,255,.25); }
+.badge-shared { background: #3b82f6; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 600; letter-spacing: .3px; }
+
+/* Filters */
+.filters { display: flex; gap: 8px; padding: 12px 16px 4px; overflow-x: auto; scrollbar-width: none; }
+.filters::-webkit-scrollbar { display: none; }
+.chip {
+  border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 7px 13px;
+  font-size: 13.5px; white-space: nowrap; display: inline-flex; gap: 6px; align-items: center; font-weight: 500;
+}
+.chip .n { background: var(--unknown-bg); color: var(--muted); border-radius: 999px; padding: 0 7px; font-size: 12px; font-weight: 600; }
+.chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+.chip.on .n { background: rgba(255,255,255,.2); color: #fff; }
+
+/* Timeline */
+.main { max-width: 760px; margin: 0 auto; padding: 8px 16px 24px; }
+.day { margin: 14px 0 4px; }
+.day-h { display: flex; align-items: baseline; gap: 10px; padding: 8px 4px 6px; border-bottom: 2px solid var(--line); position: sticky; top: 74px; background: var(--bg); z-index: 5; }
+.day.weekend .day-h { background: var(--weekend); border-radius: 8px 8px 0 0; padding-left: 10px; padding-right: 10px; border-bottom-color: #dccfba; }
+.day.weekend { background: var(--weekend); border-radius: 8px; padding: 0 0 6px; }
+.day-h .dn { font-family: var(--font-head); font-size: 17px; }
+.day-h .dd { color: var(--muted); font-size: 13px; }
+.day-h .dc { color: var(--muted); font-size: 12px; margin-left: auto; }
+.day-h .add { margin-left: 6px; background: var(--accent); color: #fff; border: 0; border-radius: 8px; width: 30px; height: 30px; font-size: 20px; line-height: 1; }
+.day.today .day-h .dn::after { content: "Today"; font: 600 10px var(--font-body); background: var(--accent); color: #fff; padding: 2px 6px; border-radius: 999px; margin-left: 8px; vertical-align: middle; }
+.day.empty { margin: 4px 0 0; }
+.day.empty .day-h { border-bottom: 1px solid var(--line); padding-top: 5px; padding-bottom: 5px; position: static; }
+.day.empty .day-h .dn { font-size: 15px; }
+.day.empty .day-h .dc { font-style: italic; }
+.day.empty .day-h .add { width: 26px; height: 26px; font-size: 17px; background: #e8d9c8; color: var(--accent); }
+.day.weekend.empty { padding-bottom: 0; }
+.item {
+  background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); margin: 8px 4px;
+  padding: 11px 13px 11px 14px; border-left: 5px solid var(--unknown); display: grid; grid-template-columns: 34px 1fr; gap: 6px 10px;
+  cursor: pointer; transition: transform .08s;
+}
+.item:active { transform: scale(.995); }
+.item.booked { border-left-color: var(--booked); }
+.item.pending { border-left-color: var(--pending); }
+.item.unknown { border-left-color: var(--unknown); }
+.item .ic { font-size: 22px; line-height: 1.2; text-align: center; grid-row: span 3; }
+.item .t { font-weight: 600; font-size: 15.5px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.item .time { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.item .d { color: #444a56; font-size: 13.5px; white-space: pre-wrap; word-break: break-word; }
+.item .m { color: var(--muted); font-size: 12px; display: flex; gap: 10px; flex-wrap: wrap; }
+.sb { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; letter-spacing: .3px; text-transform: uppercase; }
+.sb.booked { background: var(--booked-bg); color: var(--booked); }
+.sb.pending { background: var(--pending-bg); color: var(--pending); }
+.sb.unknown { background: var(--unknown-bg); color: var(--unknown); }
+.ob { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: #eef2ff; color: #4356c9; }
+.ob.client { background: #fdecf1; color: #b3305d; }
+
+/* Empty state */
+.welcome { text-align: center; padding: 48px 20px; }
+.welcome h2 { font-size: 26px; margin-bottom: 8px; }
+.welcome p { color: var(--muted); max-width: 420px; margin: 0 auto 20px; }
+
+/* Buttons */
+.btn { background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 10px; padding: 11px 16px; font-weight: 600; font-size: 15px; }
+.btn.sec { background: var(--unknown-bg); color: var(--ink); }
+.btn.ghost { background: transparent; color: var(--accent); border: 1px solid var(--line); }
+.btn.danger { background: #c0392b; color: #fff; }
+.btn.sm { padding: 7px 11px; font-size: 13.5px; border-radius: 8px; }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+.btn-row .grow { flex: 1; }
+
+/* Modal */
+.ov { position: fixed; inset: 0; background: rgba(20, 22, 30, .5); z-index: 50; display: flex; align-items: flex-end; justify-content: center; }
+@media (min-width: 640px) { .ov { align-items: center; padding: 20px; } }
+.md {
+  background: var(--card); width: 100%; max-width: 620px; max-height: 92vh; overflow: auto; border-radius: 18px 18px 0 0;
+  padding: 18px 18px 26px; box-shadow: 0 -4px 30px rgba(0,0,0,.2); animation: up .18s ease-out;
+}
+@media (min-width: 640px) { .md { border-radius: 18px; padding: 22px; } }
+@keyframes up { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+.md h2 { font-size: 21px; margin-bottom: 4px; }
+.md .hint { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+.md-h { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.md-h h2 { flex: 1; }
+.x { background: var(--unknown-bg); border: 0; border-radius: 50%; width: 32px; height: 32px; font-size: 16px; }
+.f { margin: 10px 0; }
+.f label { display: block; font-size: 12.5px; font-weight: 600; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .4px; }
+.f input[type=text], .f input[type=date], .f input[type=time], .f input[type=number], .f select, .f textarea {
+  width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: #fff; font-size: 16px;
+}
+.f textarea { min-height: 84px; resize: vertical; }
+.f input:focus, .f select:focus, .f textarea:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: transparent; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.seg { display: flex; gap: 6px; flex-wrap: wrap; }
+.seg button { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 7px 12px; font-size: 13.5px; font-weight: 500; }
+.seg button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+.seg button.on.booked { background: var(--booked); border-color: var(--booked); }
+.seg button.on.pending { background: var(--pending); border-color: var(--pending); }
+.seg button.on.unknown { background: var(--unknown); border-color: var(--unknown); }
+.cats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.cats button { border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 8px 4px; font-size: 12px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.cats button span { font-size: 20px; }
+.cats button.on { background: #fff4ec; border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.note { background: #fff8ee; border: 1px solid #f3dcb8; border-radius: 10px; padding: 9px 12px; font-size: 13.5px; }
+
+/* Comments */
+.cm { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 12px; }
+.cm h3 { font-size: 15px; font-family: var(--font-body); margin-bottom: 8px; }
+.c { background: var(--bg); border-radius: 10px; padding: 8px 11px; margin: 6px 0; font-size: 14px; }
+.c .who { font-weight: 600; font-size: 12.5px; color: var(--muted); display: flex; justify-content: space-between; margin-bottom: 2px; }
+.c-in { display: flex; gap: 8px; margin-top: 8px; }
+.c-in input { flex: 1; border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font-size: 16px; }
+
+/* Lists in modals */
+.li { display: flex; align-items: center; gap: 10px; padding: 10px 6px; border-bottom: 1px solid var(--line); }
+.li:last-child { border-bottom: 0; }
+.li .grow { flex: 1; min-width: 0; }
+.li .nm { font-weight: 600; }
+.li .sm-muted { font-size: 12.5px; color: var(--muted); }
+.menu { display: grid; gap: 6px; }
+.menu button { text-align: left; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: flex; gap: 12px; align-items: center; font-size: 15px; }
+.menu button span.i { font-size: 20px; width: 26px; text-align: center; }
+.menu button small { display: block; color: var(--muted); font-size: 12.5px; font-weight: 400; }
+.mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12.5px; background: var(--bg); border-radius: 8px; padding: 10px; white-space: pre-wrap; word-break: break-all; }
+.match { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; margin: 6px 0; font-size: 13.5px; display: flex; gap: 10px; align-items: flex-start; }
+.match mark { background: #ffe58a; border-radius: 3px; }
+.match .grow { flex: 1; }
+.match .fld { color: var(--muted); font-size: 11.5px; text-transform: uppercase; }
+table.diag { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.diag td { padding: 5px 4px; border-bottom: 1px solid var(--line); }
+table.diag td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Footer */
+.ftr {
+  position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid var(--line);
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); z-index: 15; display: flex; justify-content: center; gap: 14px; font-size: 12.5px; color: var(--muted); flex-wrap: wrap;
+}
+.ftr .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+.ftr .booked { background: var(--booked); } .ftr .pending { background: var(--pending); } .ftr .unknown { background: var(--unknown); }
+.ftr .u { margin-left: auto; cursor: pointer; text-decoration: underline dotted; }
+
+/* Toast */
+.toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 999px; font-size: 14px; z-index: 100; box-shadow: 0 6px 20px rgba(0,0,0,.25); animation: up .2s; max-width: 90vw; text-align: center; }
+.toast.err { background: #c0392b; }
+
+/* Paste bar */
+.pastebar { max-width: 760px; margin: 12px auto 0; padding: 0 16px; }
+.pastebtn { width: 100%; background: linear-gradient(135deg, #fff4ea, #ffe9d6); border: 1px dashed #e0a878; color: #8a4a1e; border-radius: 14px; padding: 12px 14px; font-weight: 700; font-size: 15px; text-align: left; display: flex; flex-direction: column; gap: 2px; }
+.pastebtn small { font-weight: 400; color: #a0703f; font-size: 12.5px; }
+.pastebtn:active { transform: scale(.995); }
+textarea.big { min-height: 180px !important; font-size: 15px; }
+textarea.drop { outline: 2px dashed var(--accent); background: #fff8f2; }
+.dupe { margin-top: 6px; font-size: 12.5px; color: #8a4a1e; background: #fff4ea; border-radius: 8px; padding: 6px 8px; }
+.dupe label { margin-right: 10px; }
+.sync { font-size: 11.5px; padding: 1px 8px; border-radius: 999px; background: rgba(255,255,255,.14); }
+.sync.ok { color: #9be7bd; } .sync.bad { color: #ffc7a3; }
+.sec-h { font-family: var(--font-body); font-size: 12.5px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin: 22px 0 8px; font-weight: 600; }
+.tripcard { display: block; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px 14px; margin: 8px 0; text-decoration: none; color: var(--ink); border-left: 5px solid var(--accent); }
+.tripcard .nm { font-weight: 600; font-size: 16px; font-family: var(--font-head); }
+.mono-inline { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.sm-muted { font-size: 12.5px; color: var(--muted); }
+
+</style>
+</head>
+<body>
+<header class="hdr"><div class="hdr-in">
+  <div class="hdr-row">
+    <button class="ibtn" id="tripsBtn" title="Trips" aria-label="Trips">🧭</button>
+    <h1 id="tripName">Travel Planner</h1>
+    <button class="ibtn" id="shareBtn" title="Share" aria-label="Share" hidden>🔗</button>
+    <button class="ibtn" id="menuBtn" title="Menu" aria-label="Menu">☰</button>
+  </div>
+  <div class="sub" id="tripSub"></div>
+</div></header>
+<div class="pastebar" id="pasteBar" hidden><button class="pastebtn" id="pasteBtn">✨ Paste an email or booking<small>Flights, hotels and trains get sorted into the plan</small></button></div>
+<nav class="filters" id="filters" hidden></nav>
+<main class="main" id="main"></main>
+<footer class="ftr">
+  <span><i class="dot booked"></i>Booked</span>
+  <span><i class="dot pending"></i>To be booked</span>
+  <span><i class="dot unknown"></i>Unknown</span>
+  <span class="u" id="userName" title="Change your name">Set your name</span>
+</footer>
+<script>
+window.TP_CONFIG = {"supabaseUrl":"https://llozmtjnfbakvzvpvcbd.supabase.co","anonKey":"sb_publishable_8RknldvPyJGPe-8M_2X9ww_8NvhKr80"};
+</script>
+<script>
+/* Travel Planner — shared itinerary planner.
+   Cloud mode: trips live in Supabase; anyone with the trip link can edit.
+   Local mode (no config): trips live in this browser only. */
+(function () {
+  'use strict';
+
+  // ---------- Date helpers (timezone-safe: NEVER use toISOString for dates) ----------
+  const pad = n => (n < 10 ? '0' : '') + n;
+  const fmtDate = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  const parseDate = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+  const addDays = (s, n) => { const d = parseDate(s); d.setDate(d.getDate() + n); return fmtDate(d); };
+  const todayStr = () => fmtDate(new Date());
+  const DOW = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const niceDate = s => { const d = parseDate(s); return DOW[d.getDay()].slice(0, 3) + ', ' + d.getDate() + ' ' + MON[d.getMonth()] + ' ' + d.getFullYear(); };
+  const longDate = s => { const d = parseDate(s); return d.getDate() + ' ' + MON[d.getMonth()] + ' ' + d.getFullYear(); };
+  const isWeekend = s => { const g = parseDate(s).getDay(); return g === 0 || g === 6; };
+  const ago = ts => {
+    if (!ts) return '';
+    const s = Math.max(0, (Date.now() - ts) / 1000);
+    if (s < 60) return 'just now';
+    if (s < 3600) return Math.floor(s / 60) + 'm ago';
+    if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+    if (s < 86400 * 30) return Math.floor(s / 86400) + 'd ago';
+    return longDate(fmtDate(new Date(ts)));
+  };
+  const fmtTime12 = t => { if (!t) return ''; const [h, m] = t.split(':').map(Number); const ap = h >= 12 ? 'pm' : 'am'; return ((h % 12) || 12) + ':' + pad(m) + ' ' + ap; };
+
+  // ---------- Constants ----------
+  const CATS = {
+    flight: { icon: '✈️', label: 'Flight' }, hotel: { icon: '🏨', label: 'Hotel' }, train: { icon: '🚆', label: 'Train' },
+    transfer: { icon: '🚕', label: 'Transfer' }, restaurant: { icon: '🍽️', label: 'Food' }, activity: { icon: '🎟️', label: 'Activity' },
+    checkout: { icon: '🧳', label: 'Check-out' }, other: { icon: '📌', label: 'Other' }
+  };
+  const STATUS = { booked: 'Booked', pending: 'To Be Booked', unknown: 'Unknown' };
+  const OWNER = { agent: 'Travel Agent', client: 'Client' };
+  const USERKEY = 'travelplanner.user', RECENTKEY = 'travelplanner.recent', LOCALKEY = 'travelplanner.local', CACHEKEY = 'travelplanner.cache.';
+  const CFG = window.TP_CONFIG || {};
+  const CLOUD = !!(CFG.supabaseUrl && CFG.anonKey);
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+
+  // ---------- Store: cloud (Supabase RPC) ----------
+  const cloudStore = {
+    async rpc(fn, args) {
+      const r = await fetch(CFG.supabaseUrl.replace(/\/$/, '') + '/rest/v1/rpc/' + fn, {
+        method: 'POST', headers: { apikey: CFG.anonKey, Authorization: 'Bearer ' + CFG.anonKey, 'Content-Type': 'application/json' }, body: JSON.stringify(args)
+      });
+      if (!r.ok) { let m = 'Server error ' + r.status; try { const j = await r.json(); m = j.message || j.hint || m; } catch (e) {} throw new Error(m); }
+      const txt = await r.text(); return txt ? JSON.parse(txt) : null;
+    },
+    createTrip: (t, by) => cloudStore.rpc('trip_create', { p_name: t.name, p_start: t.startDate, p_end: t.endDate, p_travelers: t.travelers || '', p_by: by }),
+    updateTrip: t => cloudStore.rpc('trip_update', { p_id: t.id, p_name: t.name, p_start: t.startDate, p_end: t.endDate, p_travelers: t.travelers || '' }),
+    deleteTrip: id => cloudStore.rpc('trip_delete', { p_id: id }),
+    getTrip: id => cloudStore.rpc('trip_get', { p_id: id }),
+    version: id => cloudStore.rpc('trip_version', { p_id: id }),
+    upsertItems: (id, items, by) => cloudStore.rpc('items_upsert', { p_trip: id, p_items: items, p_by: by }),
+    deleteItems: (id, ids) => cloudStore.rpc('items_delete', { p_trip: id, p_ids: ids }),
+    replaceAll: (id, items, by) => cloudStore.rpc('items_replace_all', { p_trip: id, p_items: items, p_by: by }),
+    addComment: (id, itemId, c) => cloudStore.rpc('comment_add', { p_trip: id, p_item: itemId, p_id: c.id, p_author: c.author, p_text: c.text }),
+    async parse(id, text, context) {
+      const base = (CFG.functionsUrl || CFG.supabaseUrl.replace(/\/$/, '') + '/functions/v1');
+      const r = await fetch(base + '/parse-itinerary', { method: 'POST', headers: { apikey: CFG.anonKey, Authorization: 'Bearer ' + CFG.anonKey, 'Content-Type': 'application/json' }, body: JSON.stringify({ trip: id, text, context }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || 'Could not reach the parser (' + r.status + ')');
+      return j;
+    }
+  };
+
+  // ---------- Store: local (this browser only) ----------
+  const localStore = {
+    all: () => lsGet(LOCALKEY, {}),
+    put(db) { lsSet(LOCALKEY, db); },
+    pack(t) { return { trip: { id: t.id, name: t.name, startDate: t.startDate, endDate: t.endDate, travelers: t.travelers || '', updatedAt: t.updatedAt }, items: t.items }; },
+    async createTrip(t, by) { const db = this.all(); const nt = { ...t, id: 'L' + uid(), items: [], updatedAt: Date.now() }; db[nt.id] = nt; this.put(db); return this.pack(nt); },
+    async updateTrip(t) { const db = this.all(); Object.assign(db[t.id], { name: t.name, startDate: t.startDate, endDate: t.endDate, travelers: t.travelers, updatedAt: Date.now() }); this.put(db); return this.pack(db[t.id]); },
+    async deleteTrip(id) { const db = this.all(); delete db[id]; this.put(db); },
+    async getTrip(id) { const t = this.all()[id]; return t ? this.pack(t) : null; },
+    async version(id) { const t = this.all()[id]; return t ? String(t.updatedAt) : null; },
+    async upsertItems(id, items, by) { const db = this.all(); const t = db[id]; if (!t) throw new Error('no such trip'); items.forEach(n => { const ex = t.items.find(x => x.id === n.id); const row = { ...n, comments: ex ? ex.comments : (n.comments || []), editedBy: by, editedAt: Date.now() }; if (ex) Object.assign(ex, row); else t.items.push(row); }); t.updatedAt = Date.now(); this.put(db); return items.length; },
+    async deleteItems(id, ids) { const db = this.all(); const t = db[id]; t.items = t.items.filter(x => !ids.includes(x.id)); t.updatedAt = Date.now(); this.put(db); },
+    async replaceAll(id, items, by) { const db = this.all(); db[id].items = []; this.put(db); return this.upsertItems(id, items, by); },
+    async addComment(id, itemId, c) { const db = this.all(); const it = db[id].items.find(x => x.id === itemId); if (!it) throw new Error('no such item'); (it.comments = it.comments || []).push(c); db[id].updatedAt = Date.now(); this.put(db); },
+    async parse() { throw new Error('AI parsing needs the shared backend. Ask Vikram to set it up, or add items by hand.'); }
+  };
+  const store = CLOUD ? cloudStore : localStore;
+
+  // ---------- State ----------
+  let user = localStorage.getItem(USERKEY) || '';
+  let T = null;            // { trip, items } currently open
+  let filter = 'all';
+  let lastVersion = null, pollTimer = null, syncing = false;
+  const recent = () => lsGet(RECENTKEY, []);
+  function remember(trip) { const r = recent().filter(x => x.id !== trip.id); r.unshift({ id: trip.id, name: trip.name, startDate: trip.startDate, endDate: trip.endDate, seen: Date.now() }); lsSet(RECENTKEY, r.slice(0, 20)); }
+  function forget(id) { lsSet(RECENTKEY, recent().filter(x => x.id !== id)); localStorage.removeItem(CACHEKEY + id); }
+  const codeFromHash = () => { const m = location.hash.match(/^#t=([A-Za-z0-9_-]+)/); return m ? m[1] : null; };
+  const tripLink = id => location.href.split('#')[0] + '#t=' + id;
+
+  function ensureUser(cb) {
+    if (user) return cb();
+    openModal(`<h2>Welcome</h2><p class="hint">What's your name? It's shown on the items and comments you add so everyone knows who wrote what.</p>
+      <div class="f"><input type="text" id="uname" placeholder="e.g. Vikram" autocomplete="name"></div>
+      <div class="btn-row"><button class="btn grow" id="uok">Continue</button></div>`);
+    const inp = $('#uname'); inp.focus();
+    const ok = () => { const v = inp.value.trim(); if (!v) return inp.focus(); user = v; localStorage.setItem(USERKEY, v); closeModal(); renderHeader(); cb(); };
+    $('#uok').onclick = ok; inp.onkeydown = e => { if (e.key === 'Enter') ok(); };
+  }
+
+  // ---------- DOM helpers ----------
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  let toastTimer;
+  function toast(msg, err) {
+    let t = $('.toast'); if (t) t.remove();
+    t = document.createElement('div'); t.className = 'toast' + (err ? ' err' : ''); t.textContent = msg; document.body.appendChild(t);
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.remove(), err ? 4500 : 2600);
+  }
+  function openModal(html) {
+    closeModal();
+    const ov = document.createElement('div'); ov.className = 'ov';
+    ov.innerHTML = `<div class="md" role="dialog">${html}</div>`;
+    ov.addEventListener('click', e => { if (e.target === ov) closeModal(); });
+    document.body.appendChild(ov); document.body.style.overflow = 'hidden';
+    ov.querySelectorAll('[data-close]').forEach(b => b.onclick = closeModal);
+  }
+  function closeModal() { const ov = $('.ov'); if (ov) ov.remove(); document.body.style.overflow = ''; }
+  const modalOpen = () => !!$('.ov');
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+  function confirmDlg(title, body, okLabel, cb, danger) {
+    openModal(`<h2>${esc(title)}</h2><p class="hint">${body}</p>
+      <div class="btn-row"><button class="btn sec grow" data-close>Cancel</button><button class="btn ${danger ? 'danger' : ''} grow" id="cok">${esc(okLabel)}</button></div>`);
+    $('#cok').onclick = () => { closeModal(); cb(); };
+  }
+  function busy(btn, on, label) { if (!btn) return; btn.disabled = on; if (on) { btn.dataset.l = btn.textContent; btn.textContent = label || 'Saving…'; } else if (btn.dataset.l) btn.textContent = btn.dataset.l; }
+  async function guarded(fn, btn, label) { try { busy(btn, true, label); await fn(); } catch (e) { console.error(e); toast(e.message || 'Something went wrong', true); } finally { busy(btn, false); } }
+
+  // ---------- Loading & syncing ----------
+  async function openTrip(code) {
+    stopPolling();
+    const cached = lsGet(CACHEKEY + code, null);
+    if (cached) { T = cached; render(); }
+    else { $('#main').innerHTML = '<div class="welcome"><p>Loading trip…</p></div>'; }
+    try {
+      const fresh = await store.getTrip(code);
+      if (!fresh) { forget(code); T = null; location.hash = ''; toast('That trip no longer exists', true); return renderHome(); }
+      T = fresh; lsSet(CACHEKEY + code, T); remember(T.trip); lastVersion = await store.version(code).catch(() => null);
+      render(); startPolling();
+    } catch (e) {
+      if (!cached) { $('#main').innerHTML = `<div class="welcome"><h2>Can't reach the trip</h2><p>${esc(e.message)}</p><button class="btn" onclick="location.reload()">Try again</button></div>`; }
+      else toast('Offline — showing the last copy', true);
+    }
+  }
+  async function refresh(silent) {
+    if (!T || syncing) return; syncing = true;
+    try {
+      const v = await store.version(T.trip.id);
+      if (v === null) { forget(T.trip.id); T = null; location.hash = ''; renderHome(); toast('This trip was deleted', true); return; }
+      if (v !== lastVersion || !silent) {
+        const fresh = await store.getTrip(T.trip.id);
+        if (fresh) { const changed = JSON.stringify(fresh) !== JSON.stringify(T); T = fresh; lsSet(CACHEKEY + T.trip.id, T); lastVersion = v; if (changed && !modalOpen()) render(); else if (changed) renderHeader(); if (!silent) toast(changed ? 'Updated' : 'Up to date'); }
+      }
+      setOnline(true);
+    } catch (e) { setOnline(false); if (!silent) toast(e.message, true); }
+    finally { syncing = false; }
+  }
+  function startPolling() { stopPolling(); if (!CLOUD) return; pollTimer = setInterval(() => { if (document.visibilityState === 'visible') refresh(true); }, 15000); }
+  function stopPolling() { clearInterval(pollTimer); pollTimer = null; }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && T) refresh(true); });
+  window.addEventListener('focus', () => { if (T) refresh(true); });
+  function setOnline(ok) { const el = $('#sync'); if (!el) return; el.textContent = CLOUD ? (ok ? '● live' : '● offline') : '● this device only'; el.className = 'sync ' + (ok ? 'ok' : 'bad'); }
+
+  // After a write: apply locally for instant feedback, then reload from server.
+  async function afterWrite() { if (!T) return; lsSet(CACHEKEY + T.trip.id, T); render(); await refresh(true); }
+
+  // ---------- Render ----------
+  function render() { if (!T) return renderHome(); renderHeader(); renderTimeline(); }
+  function renderHome() {
+    stopPolling(); T = null; renderHeader();
+    $('#filters').hidden = true; $('#pasteBar').hidden = true;
+    const r = recent();
+    $('#main').innerHTML = `<div class="welcome"><h2>Plan a journey together</h2><p>${CLOUD ? 'One link per trip. Everyone who has it — family and the travel agent — sees the same itinerary and can add to it.' : 'This device only: the shared backend isn\'t configured yet.'}</p>
+      <button class="btn" id="newTripBtn">Create a trip</button></div>
+      ${r.length ? `<h3 class="sec-h">Your trips</h3>${r.map(t => `<a class="tripcard" href="#t=${t.id}"><div class="nm">${esc(t.name)}</div><div class="sm-muted">${longDate(t.startDate)} → ${longDate(t.endDate)}</div></a>`).join('')}` : ''}
+      <h3 class="sec-h">Have a trip link?</h3><div class="f"><input type="text" id="linkIn" placeholder="Paste the link here" inputmode="url"></div><div class="btn-row"><button class="btn sec" id="linkGo">Open</button><button class="btn ghost" id="importBtn0">Import a backup file</button></div>`;
+    $('#newTripBtn').onclick = () => tripForm();
+    $('#importBtn0').onclick = () => importDlg();
+    $('#linkGo').onclick = () => { const m = $('#linkIn').value.match(/t=([A-Za-z0-9_-]+)/); if (m) location.hash = 't=' + m[1]; else toast('That doesn\'t look like a trip link', true); };
+  }
+  function renderHeader() {
+    const t = T && T.trip;
+    $('#tripName').textContent = t ? t.name : 'Travel Planner';
+    const sub = $('#tripSub');
+    if (!t) { sub.innerHTML = 'Plan together. One link for everyone.'; }
+    else {
+      const days = Math.round((parseDate(t.endDate) - parseDate(t.startDate)) / 86400000) + 1;
+      sub.innerHTML = `<span>${longDate(t.startDate)} → ${longDate(t.endDate)} · ${days} days</span>${t.travelers ? `<span>👥 ${esc(t.travelers)}</span>` : ''}<span id="sync" class="sync"></span>`;
+      setOnline(true);
+    }
+    $('#userName').textContent = user || 'Set your name';
+    $('#shareBtn').hidden = !t;
+  }
+  function renderTimeline() {
+    const t = T.trip, items = T.items;
+    $('#filters').hidden = false; $('#pasteBar').hidden = false;
+    const counts = { all: items.length, booked: 0, pending: 0, unknown: 0 };
+    items.forEach(i => { counts[i.status] = (counts[i.status] || 0) + 1; });
+    $('#filters').innerHTML = [['all', 'All'], ['booked', 'Booked'], ['pending', 'To Book'], ['unknown', 'Unknown']]
+      .map(([k, l]) => `<button class="chip ${filter === k ? 'on' : ''}" data-f="${k}">${l} <span class="n">${counts[k] || 0}</span></button>`).join('');
+    $('#filters').querySelectorAll('.chip').forEach(b => b.onclick = () => { filter = b.dataset.f; renderTimeline(); });
+    const byDate = {};
+    items.filter(i => filter === 'all' || i.status === filter).forEach(i => { (byDate[i.date] = byDate[i.date] || []).push(i); });
+    Object.values(byDate).forEach(a => a.sort((x, y) => (x.time || '99') < (y.time || '99') ? -1 : (x.time || '99') > (y.time || '99') ? 1 : 0));
+    let start = t.startDate, end = t.endDate;
+    items.forEach(i => { if (i.date && i.date < start) start = i.date; if (i.date && i.date > end) end = i.date; });
+    const days = []; for (let d = start; d <= end && days.length < 400; d = addDays(d, 1)) days.push(d);
+    const today = todayStr();
+    let html = '';
+    for (const d of days) {
+      const list = byDate[d] || [];
+      const outside = d < t.startDate || d > t.endDate;
+      if (filter !== 'all' && !list.length) continue;
+      html += `<section class="day ${isWeekend(d) ? 'weekend' : ''} ${d === today ? 'today' : ''} ${list.length ? '' : 'empty'}">
+        <div class="day-h"><span class="dn">${DOW[parseDate(d).getDay()]}</span><span class="dd">${longDate(d)}${outside ? ' · outside trip dates' : ''}</span>
+        <span class="dc">${list.length ? list.length + (list.length === 1 ? ' item' : ' items') : 'nothing planned'}</span>
+        <button class="add" data-add="${d}" title="Add item on this day" aria-label="Add item">+</button></div>`;
+      for (const i of list) html += itemCard(i);
+      html += `</section>`;
+    }
+    if (!html) html = `<div class="welcome"><p>No ${STATUS[filter] ? STATUS[filter].toLowerCase() : ''} items.</p></div>`;
+    if (!items.length && filter === 'all') html = `<div class="welcome" style="padding:20px"><p>Nothing here yet. Paste the agent's email above, or use the <b>+</b> on any day.</p></div>` + html;
+    $('#main').innerHTML = html;
+    $('#main').querySelectorAll('[data-add]').forEach(b => b.onclick = e => { e.stopPropagation(); itemForm(null, b.dataset.add); });
+    $('#main').querySelectorAll('[data-item]').forEach(c => c.onclick = () => itemForm(c.dataset.item));
+  }
+  function itemCard(i) {
+    const c = CATS[i.category] || CATS.other;
+    const nights = i.category === 'hotel' && i.nights ? ` · ${i.nights} night${i.nights > 1 ? 's' : ''} → out ${niceDate(addDays(i.date, +i.nights))}` : '';
+    return `<article class="item ${i.status}" data-item="${i.id}">
+      <div class="ic">${c.icon}</div>
+      <div class="t"><span>${esc(i.title)}</span><span class="sb ${i.status}">${STATUS[i.status] || i.status}</span>${i.status !== 'booked' && i.owner ? `<span class="ob ${i.owner}">${OWNER[i.owner] || i.owner}</span>` : ''}</div>
+      <div class="d">${i.time ? `<span class="time">${fmtTime12(i.time)}</span>` : ''}${i.time && i.details ? ' · ' : ''}${esc(i.details || '')}${esc(nights)}</div>
+      <div class="m">${i.editedBy ? `<span>edited by ${esc(i.editedBy)} · ${ago(i.editedAt)}</span>` : ''}${i.comments && i.comments.length ? `<span>💬 ${i.comments.length}</span>` : ''}</div>
+    </article>`;
+  }
+
+  // ---------- Trips ----------
+  function tripForm() {
+    const t = T && T.trip;
+    openModal(`<div class="md-h"><h2>${t ? 'Edit trip' : 'New trip'}</h2><button class="x" data-close>✕</button></div>
+      <div class="f"><label>Trip name</label><input type="text" id="tn" value="${esc(t ? t.name : '')}" placeholder="e.g. Japan Spring 2027"></div>
+      <div class="row2"><div class="f"><label>Start date</label><input type="date" id="ts" value="${t ? t.startDate : ''}"></div>
+      <div class="f"><label>End date</label><input type="date" id="te" value="${t ? t.endDate : ''}"></div></div>
+      <div class="f"><label>Travelers (optional)</label><input type="text" id="tt" value="${esc(t ? t.travelers || '' : '')}" placeholder="Names, comma separated"></div>
+      <div class="btn-row">${t ? '<button class="btn danger" id="tdel">Delete</button>' : ''}<button class="btn grow" id="tok">${t ? 'Save' : 'Create trip'}</button></div>`);
+    $('#tn').focus();
+    $('#tok').onclick = () => {
+      const name = $('#tn').value.trim(), s = $('#ts').value, e = $('#te').value, travelers = $('#tt').value.trim();
+      if (!name) return toast('Give the trip a name', true);
+      if (!s || !e) return toast('Pick start and end dates', true);
+      if (e < s) return toast('End date is before start date', true);
+      const btn = $('#tok');
+      ensureUser(() => guarded(async () => {
+        if (t) { const res = await store.updateTrip({ id: t.id, name, startDate: s, endDate: e, travelers }); T.trip = res.trip; remember(T.trip); closeModal(); await afterWrite(); toast('Trip updated'); }
+        else { const res = await store.createTrip({ name, startDate: s, endDate: e, travelers }, user); remember(res.trip); closeModal(); location.hash = 't=' + res.trip.id; toast('Trip created — share the link from the menu'); }
+      }, btn));
+    };
+    if (t) $('#tdel').onclick = () => confirmDlg('Delete this trip?', `<b>${esc(t.name)}</b> and its ${T.items.length} items will be deleted ${CLOUD ? 'for everyone' : ''}. Export it first if you want a backup.`, 'Delete trip', () => guarded(async () => { await store.deleteTrip(t.id); forget(t.id); T = null; location.hash = ''; renderHome(); toast('Trip deleted'); }), true);
+  }
+  function tripsDlg() {
+    const r = recent();
+    openModal(`<div class="md-h"><h2>Trips</h2><button class="x" data-close>✕</button></div>
+      ${r.map(t => `<div class="li"><div class="grow"><div class="nm">${esc(t.name)}</div><div class="sm-muted">${longDate(t.startDate)} → ${longDate(t.endDate)}</div></div>
+        ${T && t.id === T.trip.id ? '<span class="sm-muted">Open</span>' : `<button class="btn sec sm" data-sw="${t.id}">Open</button>`}<button class="btn ghost sm" data-fg="${t.id}" title="Remove from this list">✕</button></div>`).join('') || '<p class="hint">No trips yet.</p>'}
+      <div class="btn-row"><button class="btn grow" id="tnew">+ New trip</button><button class="btn sec" id="thome">Home</button></div>`);
+    document.querySelectorAll('[data-sw]').forEach(b => b.onclick = () => { closeModal(); location.hash = 't=' + b.dataset.sw; });
+    document.querySelectorAll('[data-fg]').forEach(b => b.onclick = () => { forget(b.dataset.fg); tripsDlg(); });
+    $('#tnew').onclick = () => tripForm();
+    $('#thome').onclick = () => { closeModal(); location.hash = ''; };
+  }
+
+  // ---------- Items ----------
+  function itemForm(id, date) {
+    if (!T) return;
+    const it = id ? T.items.find(x => String(x.id) === String(id)) : null;
+    const v = it ? { ...it } : { date: date || T.trip.startDate, time: '', category: 'flight', title: '', details: '', status: 'pending', owner: 'agent', nights: '' };
+    openModal(`<div class="md-h"><h2>${it ? 'Edit item' : 'Add item'}</h2><button class="x" data-close>✕</button></div>
+      <div class="f"><label>Type</label><div class="cats" id="cats">${Object.entries(CATS).filter(([k]) => k !== 'checkout' || v.category === 'checkout').map(([k, c]) => `<button type="button" data-c="${k}" class="${v.category === k ? 'on' : ''}"><span>${c.icon}</span>${c.label}</button>`).join('')}</div></div>
+      <div class="f"><label>Title</label><input type="text" id="it" value="${esc(v.title)}" placeholder="e.g. DEL → MUC, Hotel Bayerischer Hof"></div>
+      <div class="row2"><div class="f"><label>Date</label><input type="date" id="id" value="${v.date}"></div><div class="f"><label>Time (optional)</label><input type="time" id="itm" value="${v.time || ''}"></div></div>
+      <div class="f" id="nightsF" ${v.category === 'hotel' ? '' : 'hidden'}><label>Nights</label><div class="row2"><input type="number" id="in" min="1" max="60" value="${v.nights || ''}" placeholder="e.g. 3"><div class="note" id="coNote" style="display:flex;align-items:center">Check-out date appears here</div></div></div>
+      <div class="f"><label>Details</label><textarea id="idt" placeholder="Flight numbers, confirmation codes, addresses, notes…">${esc(v.details)}</textarea></div>
+      <div class="f"><label>Status</label><div class="seg" id="st">${Object.entries(STATUS).map(([k, l]) => `<button type="button" data-s="${k}" class="${v.status === k ? 'on ' + k : ''}">${l}</button>`).join('')}</div></div>
+      <div class="f" id="ownerF" ${v.status === 'booked' ? 'hidden' : ''}><label>Who needs to act</label><div class="seg" id="ow">${Object.entries(OWNER).map(([k, l]) => `<button type="button" data-o="${k}" class="${v.owner === k ? 'on' : ''}">${l}</button>`).join('')}</div></div>
+      ${it ? `<div class="cm"><h3>Comments</h3><div id="cml">${commentsHtml(it)}</div><div class="c-in"><input type="text" id="cin" placeholder="Add a comment…"><button class="btn sm" id="cadd">Post</button></div></div>` : ''}
+      <div class="btn-row">${it ? '<button class="btn danger" id="idel">Delete</button>' : ''}<button class="btn grow" id="iok">${it ? 'Save changes' : 'Add item'}</button></div>`);
+    if (!it) $('#it').focus();
+    const updCo = () => { const n = +$('#in').value, d = $('#id').value; $('#coNote').textContent = n > 0 && d ? 'Check-out ' + niceDate(addDays(d, n)) : 'Check-out date appears here'; };
+    updCo(); $('#in').oninput = updCo; $('#id').onchange = updCo;
+    $('#cats').querySelectorAll('button').forEach(b => b.onclick = () => { v.category = b.dataset.c; $('#cats').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); $('#nightsF').hidden = v.category !== 'hotel'; });
+    $('#st').querySelectorAll('button').forEach(b => b.onclick = () => { v.status = b.dataset.s; $('#st').querySelectorAll('button').forEach(x => { x.className = x === b ? 'on ' + v.status : ''; }); $('#ownerF').hidden = v.status === 'booked'; });
+    $('#ow').querySelectorAll('button').forEach(b => b.onclick = () => { v.owner = b.dataset.o; $('#ow').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); });
+    if (it) {
+      const post = () => { const txt = $('#cin').value.trim(); if (!txt) return; ensureUser(() => guarded(async () => {
+        const c = { id: uid(), author: user, text: txt, ts: Date.now() };
+        await store.addComment(T.trip.id, it.id, c); (it.comments = it.comments || []).push(c);
+        lsSet(CACHEKEY + T.trip.id, T); renderTimeline(); const l = $('#cml'); if (l) l.innerHTML = commentsHtml(it); const ci = $('#cin'); if (ci) ci.value = ''; toast('Comment added');
+      }, $('#cadd'), '…')); };
+      $('#cadd').onclick = post; $('#cin').onkeydown = e => { if (e.key === 'Enter') post(); };
+      $('#idel').onclick = () => confirmDlg('Delete this item?', esc(it.title), 'Delete', () => guarded(async () => {
+        const ids = [it.id].concat(T.items.filter(x => x.linkedTo === it.id).map(x => x.id));
+        await store.deleteItems(T.trip.id, ids); T.items = T.items.filter(x => !ids.includes(x.id)); await afterWrite(); toast('Item deleted');
+      }), true);
+    }
+    $('#iok').onclick = () => {
+      const title = $('#it').value.trim(), d = $('#id').value;
+      if (!title) return toast('Add a title', true);
+      if (!d) return toast('Pick a date', true);
+      const nights = v.category === 'hotel' ? (+$('#in').value || 0) : 0;
+      const form = { title, date: d, time: $('#itm').value, category: v.category, details: $('#idt').value.trim(), status: v.status, owner: v.owner, nights: nights || undefined };
+      const btn = $('#iok');
+      ensureUser(() => guarded(() => commitItem(it, form), btn));
+    };
+  }
+  async function commitItem(it, form) {
+    const item = it ? { ...it, ...form } : { id: uid(), createdAt: Date.now(), ...form };
+    const batch = [item]; const dels = [];
+    const ex = T.items.find(x => x.linkedTo === item.id);
+    if (form.category === 'hotel' && form.nights > 0) {
+      const co = addDays(form.date, form.nights);
+      batch.push({ ...(ex || { id: uid(), linkedTo: item.id, category: 'checkout', createdAt: Date.now() }), date: co, time: (ex && ex.time) || '11:00', title: 'Check-out: ' + form.title.replace(/^check-?in:?\s*/i, ''), details: `After ${form.nights} night${form.nights > 1 ? 's' : ''} (checked in ${niceDate(form.date)})`, status: form.status, owner: form.owner });
+    } else if (ex) dels.push(ex.id);
+    await store.upsertItems(T.trip.id, batch.map(stripLocal), user);
+    if (dels.length) await store.deleteItems(T.trip.id, dels);
+    // optimistic local apply
+    batch.forEach(b => { const i = T.items.findIndex(x => x.id === b.id); const row = { ...b, editedBy: user, editedAt: Date.now(), comments: i >= 0 ? T.items[i].comments : [] }; if (i >= 0) T.items[i] = row; else T.items.push(row); });
+    T.items = T.items.filter(x => !dels.includes(x.id));
+    closeModal(); await afterWrite(); toast(it ? 'Saved' : 'Added');
+  }
+  const stripLocal = i => { const { comments, editedBy, editedAt, ...rest } = i; return rest; };
+  const commentsHtml = it => (it.comments || []).map(c => `<div class="c"><div class="who"><span>${esc(c.author)}</span><span>${ago(c.ts)}</span></div>${esc(c.text)}</div>`).join('') || '<p class="hint">No comments yet.</p>';
+
+  // ---------- Paste anything (AI) ----------
+  function pasteDlg(prefill) {
+    if (!T) return;
+    openModal(`<div class="md-h"><h2>Paste an email or booking</h2><button class="x" data-close>✕</button></div>
+      <p class="hint">Paste anything — the agent's email, an airline confirmation, a hotel voucher, a WhatsApp message. It gets sorted into itinerary items for you to check before adding. You can also drop a file here (.txt, .eml, .csv, .json).</p>
+      <div class="f"><textarea id="ptxt" class="big" placeholder="Paste here…">${esc(prefill || '')}</textarea></div>
+      <div class="f"><input type="file" id="pfile" accept=".txt,.eml,.csv,.json,text/plain,message/rfc822,text/csv,application/json"></div>
+      <div id="pres"></div>
+      <div class="btn-row"><button class="btn grow" id="pgo">✨ Sort it into items</button></div>`);
+    const ta = $('#ptxt'); ta.focus();
+    const loadFile = f => { const r = new FileReader(); r.onload = () => { ta.value = cleanEmail(r.result, f.name); toast('File loaded — now tap Sort'); }; r.readAsText(f); };
+    $('#pfile').onchange = e => { if (e.target.files[0]) loadFile(e.target.files[0]); };
+    ta.addEventListener('dragover', e => { e.preventDefault(); ta.classList.add('drop'); });
+    ta.addEventListener('dragleave', () => ta.classList.remove('drop'));
+    ta.addEventListener('drop', e => { e.preventDefault(); ta.classList.remove('drop'); const f = e.dataTransfer.files[0]; if (f) loadFile(f); else { const t = e.dataTransfer.getData('text/plain'); if (t) ta.value = cleanEmail(t); } });
+    $('#pgo').onclick = () => {
+      const text = ta.value.trim(); if (!text) return toast('Paste something first', true);
+      // Structured data doesn't need AI.
+      if (text[0] === '{' || text[0] === '[' || /^date\s*,/i.test(text)) { closeModal(); return importDlg(text); }
+      const btn = $('#pgo');
+      guarded(async () => {
+        busy(btn, true, 'Reading… (10–30 seconds)');
+        const ctx = { name: T.trip.name, startDate: T.trip.startDate, endDate: T.trip.endDate, travelers: T.trip.travelers, existing: T.items.map(i => ({ id: i.id, date: i.date, category: i.category, title: i.title })) };
+        const res = await store.parse(T.trip.id, text, ctx);
+        const items = (res.items || []).map(normItem);
+        if (!items.length) { $('#pres').innerHTML = `<div class="note">Nothing found. ${esc(res.notes || '')}</div>`; return; }
+        previewItems(items, res.notes, text);
+      }, btn);
+    };
+  }
+  // Best-effort cleanup of raw .eml / HTML pastes so the parser sees readable text.
+  function cleanEmail(s, name) {
+    if (/\.(csv|json)$/i.test(name || '')) return s;
+    let t = s;
+    if (/^(Received|From|Subject|MIME-Version|Content-Type):/im.test(t.slice(0, 2000))) {
+      // Decode base64 text parts, quoted-printable, drop attachments.
+      t = t.replace(/Content-Transfer-Encoding:\s*base64[\s\S]*?\r?\n\r?\n([A-Za-z0-9+/=\r\n]+)/gi, (m, b) => { try { return '\n' + decodeURIComponent(escape(atob(b.replace(/\s/g, '')))) + '\n'; } catch (e) { return ''; } });
+      t = t.replace(/=\r?\n/g, '').replace(/=([0-9A-F]{2})/g, (m, h) => String.fromCharCode(parseInt(h, 16)));
+    }
+    if (/<\/?(html|body|div|table|p|br)\b/i.test(t)) {
+      t = t.replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>|<head[\s\S]*?<\/head>/gi, '').replace(/<br\s*\/?>|<\/(p|div|tr|li|h\d)>/gi, '\n').replace(/<[^>]+>/g, ' ');
+      const d = document.createElement('textarea'); d.innerHTML = t; t = d.value;
+    }
+    return t.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+  }
+  const similar = (a, b) => { const n = s => s.toLowerCase().replace(/[^a-z0-9]/g, ''); const x = n(a), y = n(b); return x && y && (x === y || x.includes(y) || y.includes(x)); };
+  function previewItems(items, notes, sourceText) {
+    items.forEach(n => { n._dupe = T.items.find(e => e.date === n.date && e.category === n.category && similar(e.title, n.title)) || null; });
+    openModal(`<div class="md-h"><h2>Check before adding</h2><button class="x" data-close>✕</button></div>
+      <p class="hint">${items.length} item${items.length > 1 ? 's' : ''} found. Untick anything wrong; you can edit details after adding.${notes ? ' <b>' + esc(notes) + '</b>' : ''}</p>
+      <div id="plist">${items.map((n, k) => `<label class="match"><input type="checkbox" data-k="${k}" checked><div class="grow"><div><b>${(CATS[n.category] || CATS.other).icon} ${esc(n.title)}</b> <span class="sb ${n.status}">${STATUS[n.status]}</span></div>
+        <div class="fld">${niceDate(n.date)}${n.time ? ' · ' + fmtTime12(n.time) : ''}${n.nights ? ' · ' + n.nights + ' nights' : ''}</div><div class="sm-muted" style="white-space:pre-wrap">${esc(n.details)}</div>
+        ${n._dupe ? `<div class="dupe">Looks like <b>${esc(n._dupe.title)}</b> already on this day → <label><input type="radio" name="d${k}" value="update" checked> update it</label> <label><input type="radio" name="d${k}" value="new"> add as new</label></div>` : ''}</div></label>`).join('')}</div>
+      <div class="btn-row"><button class="btn sec" id="pback">Back</button><button class="btn grow" id="padd">Add selected</button></div>`);
+    $('#pback').onclick = () => pasteDlg(sourceText);
+    $('#padd').onclick = () => ensureUser(() => guarded(async () => {
+      const chosen = [...document.querySelectorAll('#plist [data-k]')].filter(cb => cb.checked).map(cb => { const n = items[+cb.dataset.k]; const mode = n._dupe && document.querySelector(`input[name=d${cb.dataset.k}]:checked`).value; return { n, mode }; });
+      if (!chosen.length) return toast('Nothing selected', true);
+      const batch = [];
+      chosen.forEach(({ n, mode }) => {
+        const { _dupe, ...clean } = n;
+        let row = clean;
+        if (mode === 'update') row = { ...stripLocal(_dupe), ...clean, id: _dupe.id };
+        batch.push(row);
+        if (row.category === 'hotel' && row.nights > 0) {
+          const ex = T.items.find(x => x.linkedTo === row.id);
+          batch.push({ ...(ex ? stripLocal(ex) : { id: uid(), linkedTo: row.id, category: 'checkout', createdAt: Date.now() }), date: addDays(row.date, row.nights), time: (ex && ex.time) || '11:00', title: 'Check-out: ' + row.title, details: `After ${row.nights} night${row.nights > 1 ? 's' : ''} (checked in ${niceDate(row.date)})`, status: row.status, owner: row.owner });
+        }
+      });
+      await store.upsertItems(T.trip.id, batch, user);
+      batch.forEach(b => { const i = T.items.findIndex(x => x.id === b.id); const rowl = { ...b, editedBy: user, editedAt: Date.now(), comments: i >= 0 ? T.items[i].comments : [] }; if (i >= 0) T.items[i] = rowl; else T.items.push(rowl); });
+      closeModal(); filter = 'all'; await afterWrite(); toast(`Added ${chosen.length} item${chosen.length > 1 ? 's' : ''}`);
+    }, $('#padd')));
+  }
+
+  // ---------- Menu ----------
+  function menuDlg() {
+    openModal(`<div class="md-h"><h2>Menu</h2><button class="x" data-close>✕</button></div><div class="menu">
+      <button data-m="trips"><span class="i">🧭</span><div>Trips<small>Open another trip or start a new one</small></div></button>
+      ${T ? `<button data-m="share"><span class="i">🔗</span><div>Share this trip<small>Send the link to family and the travel agent</small></div></button>
+      <button data-m="edit"><span class="i">✏️</span><div>Trip details<small>Name, dates, travelers, delete</small></div></button>
+      <button data-m="export"><span class="i">⬇️</span><div>Export<small>Printable itinerary, JSON backup, CSV, copy</small></div></button>
+      <button data-m="import"><span class="i">⬆️</span><div>Import a file<small>JSON backup or CSV — merge or replace</small></div></button>
+      <button data-m="fr"><span class="i">🔍</span><div>Find &amp; replace<small>Bulk-edit text across all items</small></div></button>
+      <button data-m="refresh"><span class="i">🔄</span><div>Refresh<small>Pull the latest changes now</small></div></button>` : ''}
+      <button data-m="name"><span class="i">👤</span><div>Your name<small>${esc(user || 'Not set')}</small></div></button>
+      <button data-m="diag"><span class="i">🩺</span><div>Diagnostics<small>Connection, counts, out-of-range checks</small></div></button>
+      <button data-m="help"><span class="i">❓</span><div>How this works<small>Read this once</small></div></button></div>`);
+    document.querySelectorAll('[data-m]').forEach(b => b.onclick = () => ({ trips: tripsDlg, share: shareDlg, edit: tripForm, export: exportDlg, import: () => importDlg(), fr: findReplaceDlg, refresh: () => { closeModal(); refresh(false); }, name: nameDlg, diag: diagDlg, help: helpDlg })[b.dataset.m]());
+  }
+  function nameDlg() {
+    openModal(`<div class="md-h"><h2>Your name</h2><button class="x" data-close>✕</button></div><p class="hint">Shown on items and comments you add.</p>
+      <div class="f"><input type="text" id="uname" value="${esc(user)}"></div><div class="btn-row"><button class="btn grow" id="uok">Save</button></div>`);
+    $('#uok').onclick = () => { user = $('#uname').value.trim(); localStorage.setItem(USERKEY, user); closeModal(); renderHeader(); toast('Name saved'); };
+  }
+  function helpDlg() {
+    openModal(`<div class="md-h"><h2>How this works</h2><button class="x" data-close>✕</button></div>
+      <p><b>One link per trip.</b> Everyone who has the link — family and the travel agent — sees the same itinerary. Changes appear for everyone within a few seconds. No accounts, no passwords: just type your name once.</p>
+      <p><b>Adding things is easy.</b> Got an email from the agent or an airline? Tap <b>Paste an email or booking</b>, paste it, and the flights, hotels and trains are sorted out for you. Check the list, tap Add. Or use the <b>+</b> on any day to add by hand.</p>
+      <p><b>Colours mean status.</b> Green = booked. Orange = still to be booked (and it says who has to act). Grey = nobody knows yet. Tap any item to edit it or leave a comment.</p>
+      <p><b>Keep the link private.</b> Anyone with it can edit. Share it on WhatsApp or email with the people on the trip.</p>
+      <p class="hint">Tip: on a phone, use the browser's Share → "Add to Home Screen" to make this feel like an app.</p>`);
+  }
+
+  // ---------- Share ----------
+  function shareDlg() {
+    if (!T) return;
+    const link = tripLink(T.trip.id);
+    const msg = `${T.trip.name} — our trip itinerary. Open this link to see it and add details: ${link}`;
+    openModal(`<div class="md-h"><h2>Share “${esc(T.trip.name)}”</h2><button class="x" data-close>✕</button></div>
+      <p class="hint">${CLOUD ? 'Anyone with this link sees the live itinerary and can add to it. Send it to the family and the travel agent.' : 'This trip is on this device only. Set up the shared backend to share by link, or use Export → JSON.'}</p>
+      <div class="mono" id="lnk">${esc(link)}</div>
+      <div class="btn-row"><button class="btn grow" id="cp">Copy link</button><a class="btn sec grow" style="text-align:center;text-decoration:none" href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">WhatsApp</a>${navigator.share ? '<button class="btn sec" id="sh">Share…</button>' : ''}</div>
+      <div class="btn-row"><a class="btn ghost grow" style="text-align:center;text-decoration:none" href="mailto:?subject=${encodeURIComponent(T.trip.name + ' itinerary')}&body=${encodeURIComponent(msg)}">Email</a></div>`);
+    $('#cp').onclick = () => copy(link, 'Link copied');
+    if ($('#sh')) $('#sh').onclick = () => navigator.share({ title: T.trip.name, text: msg }).catch(() => {});
+  }
+  function copy(text, msg) {
+    const done = () => toast(msg || 'Copied');
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done)); else fallbackCopy(text, done);
+  }
+  function fallbackCopy(text, done) { const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); done(); } catch (e) { toast('Copy failed — select and copy manually', true); } ta.remove(); }
+
+  // ---------- Export ----------
+  const payload = () => ({ trip: { ...T.trip }, items: T.items, exportedAt: new Date().toISOString(), exportedBy: user });
+  function exportDlg() {
+    if (!T) return;
+    openModal(`<div class="md-h"><h2>Export</h2><button class="x" data-close>✕</button></div><div class="menu">
+      <button data-e="print"><span class="i">🖨️</span><div>Printable itinerary<small>Clean page — print or save as PDF</small></div></button>
+      <button data-e="copy"><span class="i">📋</span><div>Copy as text<small>Paste into WhatsApp or email</small></div></button>
+      <button data-e="json"><span class="i">🗂️</span><div>JSON backup<small>Full data, re-importable</small></div></button>
+      <button data-e="csv"><span class="i">📊</span><div>CSV<small>Opens in Excel or Google Sheets</small></div></button></div>`);
+    document.querySelectorAll('[data-e]').forEach(b => b.onclick = () => { closeModal(); ({ json: exportJSON, csv: exportCSV, print: printView, copy: copyText })[b.dataset.e](); });
+  }
+  const slug = s => s.replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '');
+  function download(name, text, type) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); }
+  function exportJSON() { download(slug(T.trip.name) + '.json', JSON.stringify(payload(), null, 2), 'application/json'); toast('JSON downloaded'); }
+  const csvCell = v => { v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  const sortedItems = () => [...T.items].sort((a, b) => (a.date + (a.time || '99')) < (b.date + (b.time || '99')) ? -1 : 1);
+  function toCSV() { const rows = [['date', 'time', 'category', 'title', 'details', 'status', 'owner', 'nights', 'editedBy']]; sortedItems().forEach(i => rows.push([i.date, i.time || '', i.category, i.title, i.details || '', i.status, i.owner || '', i.nights || '', i.editedBy || ''])); return rows.map(r => r.map(csvCell).join(',')).join('\n'); }
+  function exportCSV() { download(slug(T.trip.name) + '.csv', toCSV(), 'text/csv'); toast('CSV downloaded'); }
+  function asText() {
+    const t = T.trip; let out = `${t.name}\n${longDate(t.startDate)} – ${longDate(t.endDate)}${t.travelers ? '\n' + t.travelers : ''}\n`; let last = '';
+    sortedItems().forEach(i => { if (i.date !== last) { out += `\n${niceDate(i.date)}\n`; last = i.date; } out += `  ${(CATS[i.category] || CATS.other).icon} ${i.time ? fmtTime12(i.time) + '  ' : ''}${i.title} [${STATUS[i.status]}${i.status !== 'booked' && i.owner ? ' – ' + OWNER[i.owner] : ''}]${i.details ? '\n     ' + i.details.replace(/\n/g, '\n     ') : ''}\n`; });
+    return out;
+  }
+  function copyText() { copy(asText(), 'Itinerary copied as text'); }
+  function printView() {
+    const t = T.trip; const days = {}; sortedItems().forEach(i => (days[i.date] = days[i.date] || []).push(i));
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(t.name)} — Itinerary</title>
+      <style>body{font-family:Georgia,serif;max-width:760px;margin:24px auto;padding:0 20px;color:#222}h1{font-size:28px;margin:0}.sub{color:#666;margin:4px 0 20px}h2{font-size:16px;border-bottom:2px solid #ddd;padding-bottom:4px;margin:22px 0 8px;font-family:system-ui,sans-serif}
+      .i{display:grid;grid-template-columns:70px 1fr;gap:10px;padding:6px 0;border-bottom:1px solid #eee;page-break-inside:avoid;font-family:system-ui,sans-serif;font-size:14px}.i .tm{color:#666}.i b{font-size:15px}.s{font-size:11px;text-transform:uppercase;letter-spacing:.4px;padding:1px 6px;border-radius:4px;margin-left:6px}
+      .booked{background:#e3f5ec;color:#2f9e6b}.pending{background:#fff2dc;color:#d98a1e}.unknown{background:#eceef2;color:#666}.d{color:#444;white-space:pre-wrap;margin-top:2px}@media print{button{display:none}}</style></head><body>
+      <button onclick="print()" style="float:right;padding:8px 14px">Print / Save as PDF</button><h1>${esc(t.name)}</h1><div class="sub">${longDate(t.startDate)} – ${longDate(t.endDate)}${t.travelers ? ' · ' + esc(t.travelers) : ''}</div>
+      ${Object.keys(days).sort().map(d => `<h2>${niceDate(d)}</h2>` + days[d].map(i => `<div class="i"><div class="tm">${i.time ? fmtTime12(i.time) : ''}</div><div><b>${(CATS[i.category] || CATS.other).icon} ${esc(i.title)}</b><span class="s ${i.status}">${STATUS[i.status]}</span>${i.status !== 'booked' && i.owner ? `<span class="s">${OWNER[i.owner]}</span>` : ''}${i.details ? `<div class="d">${esc(i.details)}</div>` : ''}</div></div>`).join('')).join('')}
+      </body></html>`;
+    const w = window.open('', '_blank');
+    if (!w) { download(slug(t.name) + '_itinerary.html', html, 'text/html'); return toast('Pop-up blocked — downloaded the itinerary as an HTML file instead'); }
+    w.document.open(); w.document.write(html); w.document.close();
+  }
+
+  // ---------- Import (structured) ----------
+  function importDlg(prefill) {
+    openModal(`<div class="md-h"><h2>Import a file</h2><button class="x" data-close>✕</button></div>
+      <p class="hint">A JSON backup from this app, or a CSV with columns date, time, category, title, details, status, owner. For emails and messages use <b>Paste an email</b> instead.</p>
+      <div class="f"><input type="file" id="ifile" accept=".json,.csv,.txt,application/json,text/csv,text/plain"></div>
+      <div class="f"><textarea id="itxt" placeholder='{"trip": {...}, "items": [...]}  or  date,time,category,title,...' style="min-height:120px;font-family:ui-monospace,monospace;font-size:13px">${esc(prefill || '')}</textarea></div>
+      ${T ? `<div class="f"><label>Into “${esc(T.trip.name)}”</label><div class="seg" id="imode"><button type="button" data-im="append" class="on">Add to existing items</button><button type="button" data-im="replace">Replace all items</button></div></div>` : '<p class="hint">A new trip will be created from the file.</p>'}
+      <div class="btn-row"><button class="btn grow" id="iok">Import</button></div>`);
+    let mode = 'append';
+    document.querySelectorAll('[data-im]').forEach(b => b.onclick = () => { mode = b.dataset.im; document.querySelectorAll('[data-im]').forEach(x => x.classList.toggle('on', x === b)); });
+    $('#ifile').onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { $('#itxt').value = r.result; }; r.readAsText(f); };
+    $('#iok').onclick = () => {
+      const txt = $('#itxt').value.trim(); if (!txt) return toast('Nothing to import', true);
+      let parsed; try { parsed = parseImport(txt); } catch (e) { return toast('Could not read that: ' + e.message, true); }
+      const items = parsed.items.map(normItem);
+      const btn = $('#iok');
+      ensureUser(() => guarded(async () => {
+        if (!T) {
+          const ds = items.map(i => i.date).sort(); if (!ds.length) throw new Error('No dated items found');
+          const tr = parsed.trip || {};
+          const res = await store.createTrip({ name: tr.name || 'Imported trip', startDate: tr.startDate || ds[0], endDate: tr.endDate || ds[ds.length - 1], travelers: tr.travelers || '' }, user);
+          await store.upsertItems(res.trip.id, items, user); remember(res.trip); closeModal(); location.hash = 't=' + res.trip.id; toast(`Imported ${items.length} items`); return;
+        }
+        if (mode === 'replace') { await store.replaceAll(T.trip.id, items, user); T.items = items.map(i => ({ ...i, editedBy: user, editedAt: Date.now(), comments: [] })); }
+        else { await store.upsertItems(T.trip.id, items, user); items.forEach(n => { const i = T.items.findIndex(x => x.id === n.id); const row = { ...n, editedBy: user, editedAt: Date.now(), comments: i >= 0 ? T.items[i].comments : [] }; if (i >= 0) T.items[i] = row; else T.items.push(row); }); }
+        closeModal(); filter = 'all'; await afterWrite(); toast(`Imported ${items.length} items`);
+      }, btn));
+    };
+  }
+  function normItem(i) {
+    const cat = String(i.category || 'other').toLowerCase();
+    const st = String(i.status || 'unknown').toLowerCase().replace(/\s+/g, '');
+    const status = st === 'booked' || st === 'confirmed' ? 'booked' : (st === 'pending' || st === 'tobebooked' || st === 'tobook') ? 'pending' : 'unknown';
+    const ow = String(i.owner || 'agent').toLowerCase();
+    const o = { id: i.id != null && i.id !== '' ? String(i.id) : uid(), date: normDate(i.date), time: normTime(i.time), category: CATS[cat] ? cat : 'other', title: String(i.title || 'Untitled').trim(), details: String(i.details || '').trim(), status, owner: ow.includes('client') ? 'client' : 'agent' };
+    if (i.nights && +i.nights > 0) o.nights = +i.nights;
+    if (i.linkedTo) o.linkedTo = String(i.linkedTo);
+    return o;
+  }
+  function normDate(s) {
+    if (!s) return todayStr(); s = String(s).trim();
+    let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if (m) return m[1] + '-' + pad(+m[2]) + '-' + pad(+m[3]);
+    m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/); if (m) return m[3] + '-' + pad(+m[2]) + '-' + pad(+m[1]);
+    const d = new Date(s); if (!isNaN(d)) return fmtDate(d);
+    return todayStr();
+  }
+  function normTime(s) { if (!s) return ''; const m = String(s).trim().match(/^(\d{1,2}):(\d{2})/); return m ? pad(+m[1]) + ':' + m[2] : ''; }
+  function parseImport(txt) {
+    if (txt[0] === '{' || txt[0] === '[') {
+      const j = JSON.parse(txt);
+      if (Array.isArray(j)) return { items: j };
+      if (Array.isArray(j.items)) return { trip: j.trip, items: j.items };
+      if (Array.isArray(j.trips)) { const t = j.trips.find(x => x.id === j.activeTripId) || j.trips[0]; return { trip: t, items: t.items || [] }; }
+      throw new Error('expected {"items":[…]}');
+    }
+    return { items: parseCSV(txt) };
+  }
+  function parseCSV(txt) {
+    const rows = []; let row = [], cell = '', q = false;
+    for (let i = 0; i < txt.length; i++) {
+      const c = txt[i];
+      if (q) { if (c === '"') { if (txt[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += c; }
+      else if (c === '"') q = true; else if (c === ',') { row.push(cell); cell = ''; } else if (c === '\n' || c === '\r') { if (c === '\r' && txt[i + 1] === '\n') i++; row.push(cell); rows.push(row); row = []; cell = ''; } else cell += c;
+    }
+    if (cell || row.length) { row.push(cell); rows.push(row); }
+    const hdr = rows.shift().map(h => h.trim().toLowerCase());
+    if (!hdr.includes('title') || !hdr.includes('date')) throw new Error('CSV needs at least "date" and "title" columns');
+    return rows.filter(r => r.some(x => x.trim())).map(r => { const o = {}; hdr.forEach((h, i) => o[h] = r[i]); return o; });
+  }
+
+  // ---------- Find & replace ----------
+  const tidy = s => s.replace(/ {2,}/g, ' ').replace(/\s*([,;.])\s*(?=[,;.])/g, '$1').replace(/\(\s*\)/g, '').replace(/^\s*[,;]\s*/, '').replace(/\s*[,;]\s*$/, '').replace(/ +([,;.])/g, '$1').trim();
+  function findReplaceDlg() {
+    if (!T) return;
+    openModal(`<div class="md-h"><h2>Find &amp; replace</h2><button class="x" data-close>✕</button></div>
+      <div class="row2"><div class="f"><label>Find</label><input type="text" id="ff" placeholder="e.g. Business Class"></div><div class="f"><label>Replace with</label><input type="text" id="fr" placeholder="(leave empty to remove)"></div></div>
+      <div class="f"><label>Search in</label><div class="seg" id="fw"><button type="button" data-w="both" class="on">Titles &amp; details</button><button type="button" data-w="title">Titles</button><button type="button" data-w="details">Details</button></div></div>
+      <div class="f"><label><input type="checkbox" id="fc"> Match case</label></div>
+      <div id="fres"></div><div class="btn-row"><button class="btn sec grow" id="fprev">Preview matches</button><button class="btn grow" id="fapply" disabled>Replace selected</button></div>`);
+    let where = 'both', matches = [];
+    document.querySelectorAll('[data-w]').forEach(b => b.onclick = () => { where = b.dataset.w; document.querySelectorAll('[data-w]').forEach(x => x.classList.toggle('on', x === b)); });
+    const rx = () => { const f = $('#ff').value; if (!f) return null; return new RegExp(f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $('#fc').checked ? 'g' : 'gi'); };
+    $('#fprev').onclick = () => {
+      const r = rx(); if (!r) return toast('Type something to find', true);
+      matches = [];
+      T.items.forEach(i => ['title', 'details'].forEach(f => { if (where !== 'both' && where !== f) return; if (i[f] && r.test(i[f])) matches.push({ i, f }); r.lastIndex = 0; }));
+      $('#fres').innerHTML = matches.length ? `<p class="hint">${matches.length} match${matches.length > 1 ? 'es' : ''}</p>` + matches.map((m, k) => `<label class="match"><input type="checkbox" data-k="${k}" checked><div class="grow"><div class="fld">${niceDate(m.i.date)} · ${m.f}</div>${esc(m.i[m.f]).replace(r, x => '<mark>' + x + '</mark>')}</div></label>`).join('') : '<p class="hint">No matches.</p>';
+      $('#fapply').disabled = !matches.length;
+    };
+    $('#fapply').onclick = () => {
+      const r = rx(), rep = $('#fr').value;
+      const chosen = [...document.querySelectorAll('[data-k]')].filter(cb => cb.checked).map(cb => matches[+cb.dataset.k]);
+      const btn = $('#fapply');
+      ensureUser(() => guarded(async () => {
+        const touched = new Map();
+        chosen.forEach(m => { const row = touched.get(m.i.id) || { ...m.i }; row[m.f] = tidy(row[m.f].replace(r, rep)); touched.set(m.i.id, row); });
+        const batch = [...touched.values()];
+        await store.upsertItems(T.trip.id, batch.map(stripLocal), user);
+        batch.forEach(b => { const i = T.items.findIndex(x => x.id === b.id); T.items[i] = { ...b, editedBy: user, editedAt: Date.now() }; });
+        closeModal(); await afterWrite(); toast(`Replaced in ${chosen.length} field${chosen.length === 1 ? '' : 's'}`);
+      }, btn));
+    };
+  }
+
+  // ---------- Diagnostics ----------
+  function diagDlg() {
+    const byCat = {}, byDate = {}, out = [];
+    (T ? T.items : []).forEach(i => { byCat[i.category] = (byCat[i.category] || 0) + 1; byDate[i.date] = (byDate[i.date] || 0) + 1; if (i.date < T.trip.startDate || i.date > T.trip.endDate) out.push(i); });
+    openModal(`<div class="md-h"><h2>Diagnostics</h2><button class="x" data-close>✕</button></div>
+      <table class="diag"><tr><td>Mode</td><td>${CLOUD ? 'Shared (cloud)' : 'This device only'}</td></tr><tr><td>Server</td><td>${CLOUD ? esc(CFG.supabaseUrl.replace(/^https?:\/\//, '')) : '—'}</td></tr>
+      <tr><td>Your name</td><td>${esc(user || '—')}</td></tr><tr><td>Timezone</td><td>${Intl.DateTimeFormat().resolvedOptions().timeZone}</td></tr><tr><td>Trips remembered here</td><td>${recent().length}</td></tr>
+      ${T ? `<tr><td>Trip code</td><td class="mono-inline">${esc(T.trip.id)}</td></tr><tr><td>Items</td><td>${T.items.length}</td></tr>
+      ${Object.entries(byCat).map(([k, v]) => `<tr><td>&nbsp;&nbsp;${(CATS[k] || CATS.other).icon} ${CATS[k] ? CATS[k].label : k}</td><td>${v}</td></tr>`).join('')}
+      <tr><td>Days with items</td><td>${Object.keys(byDate).length}</td></tr><tr><td>Items outside trip dates</td><td>${out.length}</td></tr><tr><td>Last server version</td><td>${esc(String(lastVersion || '—'))}</td></tr>` : ''}</table>
+      ${out.length ? `<p class="hint" style="margin-top:10px">Outside range:</p>${out.map(i => `<div class="match"><div class="grow">${niceDate(i.date)} · ${esc(i.title)}</div></div>`).join('')}` : ''}
+      <div class="btn-row">${T ? '<button class="btn sec grow" id="dcopy">Copy raw data</button>' : ''}<button class="btn danger" id="dwipe">Forget this device's data</button></div>`);
+    if ($('#dcopy')) $('#dcopy').onclick = () => copy(JSON.stringify(payload(), null, 2), 'Raw data copied');
+    $('#dwipe').onclick = () => confirmDlg('Clear this device?', CLOUD ? 'Removes the trip list and cached copies from this browser. Trips on the server are untouched — you can reopen them from their links.' : 'All trips on this device will be removed. Export a JSON backup first.', 'Clear', () => { Object.keys(localStorage).filter(k => k.startsWith('travelplanner.')).forEach(k => localStorage.removeItem(k)); user = ''; T = null; location.hash = ''; renderHome(); toast('Cleared'); }, true);
+  }
+
+  // ---------- Routing & boot ----------
+  function route() { const code = codeFromHash(); if (code) openTrip(code); else renderHome(); }
+  $('#menuBtn').onclick = menuDlg;
+  $('#tripsBtn').onclick = tripsDlg;
+  $('#shareBtn').onclick = shareDlg;
+  $('#userName').onclick = nameDlg;
+  $('#pasteBtn').onclick = () => pasteDlg();
+  window.addEventListener('hashchange', route);
+  route();
+  window.TP = { get T() { return T; }, addDays, fmtDate, parseDate, cleanEmail, CLOUD }; // for tests / debugging
+})();
+
+</script>
+</body>
+</html>
