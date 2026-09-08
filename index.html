@@ -621,11 +621,20 @@ window.TP_CONFIG = {"supabaseUrl":"https://llozmtjnfbakvzvpvcbd.supabase.co","an
       guarded(async () => {
         const ctx = { name: T.trip.name, startDate: T.trip.startDate, endDate: T.trip.endDate, travelers: T.trip.travelers, existing: T.items.map(i => ({ id: i.id, date: i.date, category: i.category, title: i.title })) };
         const res = await store.parse(T.trip.id, text, ctx);
-        const items = (res.items || []).map(i => normItem({ ...i, date: i.date || T.trip.startDate }));
+        const items = (res.items || []).map(i => normItem({ ...i, date: i.date || T.trip.startDate, title: scrubClass(i.title), details: scrubClass(i.details) }));
         if (!items.length) { $('#pres').innerHTML = `<div class="note">Nothing found. ${esc(res.notes || '')}</div>`; return; }
         previewItems(items, res.notes, text);
       }, btn, 'Reading…').finally(() => clearInterval(tick));
     };
+  }
+  // House rule: never show travel class. Seat numbers stay. Applied to everything the parser returns.
+  function scrubClass(s) {
+    if (!s) return s;
+    return String(s)
+      .replace(/\b(first|business|economy|premium\s*economy|premium|club|upper|polaris|delta\s*one|mint)[\s-]*(class|cabin)\s*(suites?|seats?)?/gi, (m, a, b, c) => c ? c[0].toUpperCase() + c.slice(1) : '')
+      .replace(/\((first|business|economy|premium)\)/gi, '')
+      .replace(/\bsuites?\b/gi, m => m[0] === 'S' ? 'Seats' : 'seats')
+      .replace(/ {2,}/g, ' ').replace(/\s+([,.])/g, '$1').replace(/\.\s*\./g, '.').replace(/^[,.\s]+|[,\s]+$/g, '').trim();
   }
   // Best-effort cleanup of raw .eml / HTML pastes so the parser sees readable text.
   function cleanEmail(s, name) {
@@ -887,7 +896,7 @@ window.TP_CONFIG = {"supabaseUrl":"https://llozmtjnfbakvzvpvcbd.supabase.co","an
   $('#pasteBtn').onclick = () => pasteDlg();
   window.addEventListener('hashchange', route);
   route();
-  window.TP = { get T() { return T; }, addDays, fmtDate, parseDate, cleanEmail, CLOUD }; // for tests / debugging
+  window.TP = { get T() { return T; }, addDays, fmtDate, parseDate, cleanEmail, scrubClass, CLOUD }; // for tests / debugging
 })();
 
 </script>
