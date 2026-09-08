@@ -220,6 +220,8 @@ textarea.drop { outline: 2px dashed var(--accent); background: #fff8f2; }
 .tripcard .nm { font-weight: 600; font-size: 16px; font-family: var(--font-head); }
 .mono-inline { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
 .sm-muted { font-size: 12.5px; color: var(--muted); }
+.day.outside .day-h { border-bottom: 1px dashed #d9b48f; }
+.day.outside .day-h .dn { font-size: 15px; color: #8a4a1e; }
 
 </style>
 </head>
@@ -459,35 +461,41 @@ window.TP_CONFIG = {"supabaseUrl":"https://llozmtjnfbakvzvpvcbd.supabase.co","an
     const byDate = {};
     items.filter(i => filter === 'all' || i.status === filter).forEach(i => { (byDate[i.date] = byDate[i.date] || []).push(i); });
     Object.values(byDate).forEach(a => a.sort((x, y) => (x.time || '99') < (y.time || '99') ? -1 : (x.time || '99') > (y.time || '99') ? 1 : 0));
-    let start = t.startDate, end = t.endDate;
-    items.forEach(i => { if (i.date && i.date < start) start = i.date; if (i.date && i.date > end) end = i.date; });
-    const days = []; for (let d = start; d <= end && days.length < 400; d = addDays(d, 1)) days.push(d);
+    const days = []; for (let d = t.startDate; d <= t.endDate && days.length < 400; d = addDays(d, 1)) days.push(d);
     const today = todayStr();
-    let html = '';
+    // Items outside the trip dates get their own compact sections rather than stretching the calendar.
+    const outsideSection = (label, dates) => {
+      const list = dates.flatMap(d => byDate[d] || []);
+      if (!list.length) return '';
+      return `<section class="day outside"><div class="day-h"><span class="dn">${label}</span><span class="dc">${list.length} item${list.length > 1 ? 's' : ''} outside the trip dates</span></div>${list.map(i => itemCard(i, true)).join('')}</section>`;
+    };
+    const allDates = Object.keys(byDate).sort();
+    let html = outsideSection('Before the trip', allDates.filter(d => d < t.startDate));
     for (const d of days) {
       const list = byDate[d] || [];
-      const outside = d < t.startDate || d > t.endDate;
       if (filter !== 'all' && !list.length) continue;
       html += `<section class="day ${isWeekend(d) ? 'weekend' : ''} ${d === today ? 'today' : ''} ${list.length ? '' : 'empty'}">
-        <div class="day-h"><span class="dn">${DOW[parseDate(d).getDay()]}</span><span class="dd">${longDate(d)}${outside ? ' · outside trip dates' : ''}</span>
+        <div class="day-h"><span class="dn">${DOW[parseDate(d).getDay()]}</span><span class="dd">${longDate(d)}</span>
         <span class="dc">${list.length ? list.length + (list.length === 1 ? ' item' : ' items') : 'nothing planned'}</span>
         <button class="add" data-add="${d}" title="Add item on this day" aria-label="Add item">+</button></div>`;
       for (const i of list) html += itemCard(i);
       html += `</section>`;
     }
+    html += outsideSection('After the trip', allDates.filter(d => d > t.endDate));
     if (!html) html = `<div class="welcome"><p>No ${STATUS[filter] ? STATUS[filter].toLowerCase() : ''} items.</p></div>`;
     if (!items.length && filter === 'all') html = `<div class="welcome" style="padding:20px"><p>Nothing here yet. Paste the agent's email above, or use the <b>+</b> on any day.</p></div>` + html;
     $('#main').innerHTML = html;
     $('#main').querySelectorAll('[data-add]').forEach(b => b.onclick = e => { e.stopPropagation(); itemForm(null, b.dataset.add); });
     $('#main').querySelectorAll('[data-item]').forEach(c => c.onclick = () => itemForm(c.dataset.item));
   }
-  function itemCard(i) {
+  function itemCard(i, showDate) {
     const c = CATS[i.category] || CATS.other;
+    const when = showDate ? niceDate(i.date) + (i.time ? ' · ' : '') : '';
     const nights = i.category === 'hotel' && i.nights ? ` · ${i.nights} night${i.nights > 1 ? 's' : ''} → out ${niceDate(addDays(i.date, +i.nights))}` : '';
     return `<article class="item ${i.status}" data-item="${i.id}">
       <div class="ic">${c.icon}</div>
       <div class="t"><span>${esc(i.title)}</span><span class="sb ${i.status}">${STATUS[i.status] || i.status}</span>${i.status !== 'booked' && i.owner ? `<span class="ob ${i.owner}">${OWNER[i.owner] || i.owner}</span>` : ''}</div>
-      <div class="d">${i.time ? `<span class="time">${fmtTime12(i.time)}</span>` : ''}${i.time && i.details ? ' · ' : ''}${esc(i.details || '')}${esc(nights)}</div>
+      <div class="d">${when || i.time ? `<span class="time">${when}${fmtTime12(i.time)}</span>` : ''}${(when || i.time) && i.details ? ' · ' : ''}${esc(i.details || '')}${esc(nights)}</div>
       <div class="m">${i.editedBy ? `<span>edited by ${esc(i.editedBy)} · ${ago(i.editedAt)}</span>` : ''}${i.comments && i.comments.length ? `<span>💬 ${i.comments.length}</span>` : ''}</div>
     </article>`;
   }
@@ -612,7 +620,7 @@ window.TP_CONFIG = {"supabaseUrl":"https://llozmtjnfbakvzvpvcbd.supabase.co","an
         busy(btn, true, 'Reading… (10–30 seconds)');
         const ctx = { name: T.trip.name, startDate: T.trip.startDate, endDate: T.trip.endDate, travelers: T.trip.travelers, existing: T.items.map(i => ({ id: i.id, date: i.date, category: i.category, title: i.title })) };
         const res = await store.parse(T.trip.id, text, ctx);
-        const items = (res.items || []).map(normItem);
+        const items = (res.items || []).map(i => normItem({ ...i, date: i.date || T.trip.startDate }));
         if (!items.length) { $('#pres').innerHTML = `<div class="note">Nothing found. ${esc(res.notes || '')}</div>`; return; }
         previewItems(items, res.notes, text);
       }, btn);
