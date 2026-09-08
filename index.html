@@ -382,7 +382,7 @@ window.TP_CONFIG = {"supabaseUrl":"https://llozmtjnfbakvzvpvcbd.supabase.co","an
       <div class="btn-row"><button class="btn sec grow" data-close>Cancel</button><button class="btn ${danger ? 'danger' : ''} grow" id="cok">${esc(okLabel)}</button></div>`);
     $('#cok').onclick = () => { closeModal(); cb(); };
   }
-  function busy(btn, on, label) { if (!btn) return; btn.disabled = on; if (on) { btn.dataset.l = btn.textContent; btn.textContent = label || 'Saving…'; } else if (btn.dataset.l) btn.textContent = btn.dataset.l; }
+  function busy(btn, on, label) { if (!btn) return; btn.disabled = on; if (on) { if (!btn.dataset.l) btn.dataset.l = btn.textContent; btn.textContent = label || 'Saving…'; } else if (btn.dataset.l) { btn.textContent = btn.dataset.l; delete btn.dataset.l; } }
   async function guarded(fn, btn, label) { try { busy(btn, true, label); await fn(); } catch (e) { console.error(e); toast(e.message || 'Something went wrong', true); } finally { busy(btn, false); } }
 
   // ---------- Loading & syncing ----------
@@ -616,14 +616,15 @@ window.TP_CONFIG = {"supabaseUrl":"https://llozmtjnfbakvzvpvcbd.supabase.co","an
       // Structured data doesn't need AI.
       if (text[0] === '{' || text[0] === '[' || /^date\s*,/i.test(text)) { closeModal(); return importDlg(text); }
       const btn = $('#pgo');
+      const t0 = Date.now();
+      const tick = setInterval(() => { if (btn.isConnected && btn.disabled) btn.textContent = `Reading… ${Math.round((Date.now() - t0) / 1000)}s (long emails take up to a minute)`; }, 1000);
       guarded(async () => {
-        busy(btn, true, 'Reading… (10–30 seconds)');
         const ctx = { name: T.trip.name, startDate: T.trip.startDate, endDate: T.trip.endDate, travelers: T.trip.travelers, existing: T.items.map(i => ({ id: i.id, date: i.date, category: i.category, title: i.title })) };
         const res = await store.parse(T.trip.id, text, ctx);
         const items = (res.items || []).map(i => normItem({ ...i, date: i.date || T.trip.startDate }));
         if (!items.length) { $('#pres').innerHTML = `<div class="note">Nothing found. ${esc(res.notes || '')}</div>`; return; }
         previewItems(items, res.notes, text);
-      }, btn);
+      }, btn, 'Reading…').finally(() => clearInterval(tick));
     };
   }
   // Best-effort cleanup of raw .eml / HTML pastes so the parser sees readable text.
